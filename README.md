@@ -1,111 +1,66 @@
-# Camunda BPMN Sipariş Süreci
+# Camunda BPMN Integration Project
 
-Bu proje, Camunda BPM kullanarak bir sipariş sürecini yönetir. Süreç, kullanıcı doğrulama, sipariş işleme ve bildirim gönderme adımlarını içerir.
+Bu proje, Camunda BPM platformu ile kurumsal servis entegrasyonlarını yönetmek için geliştirilmiş bir Spring Boot uygulamasıdır.
+
+## Özellikler
+
+- BPMN süreçlerini deploy etme ve yönetme
+- Task-API mapping yönetimi
+- Dinamik API entegrasyonu
+- Süreç izleme ve yönetim
 
 ## Teknolojiler
 
-- Java 17
-- Spring Boot
-- Camunda BPM
+- Spring Boot 2.7.9
+- Camunda BPM 7.19.0
 - H2 Database
-- REST API
+- Java 17
 
-## Proje Yapısı
+## Kurulum
 
-```
-src/main/java/com/tuncerburak/
-├── controller/          # REST API controller'ları
-├── delegate/           # Camunda service task delegate'leri
-├── model/             # DTO ve request/response modelleri
-├── service/           # İş mantığı servisleri
-└── config/            # Konfigürasyon sınıfları
-```
-
-## Süreç Akışı
-
-1. **API İsteği**
-   - Endpoint: POST `/api/process/start`
-   - Request body örneği:
-   ```json
-   {
-       "userId": "user123",
-       "email": "user@example.com",
-       "name": "John Doe",
-       "productId": "prod456",
-       "amount": 100.50,
-       "quantity": 2
-   }
-   ```
-
-2. **Kullanıcı Doğrulama**
-   - `UserValidationDelegate` çalışır
-   - Dış servis çağrısı yapılır
-   - Sonuç process variable'a kaydedilir
-
-3. **Sipariş İşleme**
-   - Kullanıcı geçerliyse `OrderProcessingDelegate` çalışır
-   - Sipariş bilgileri dış servise gönderilir
-   - Sipariş ID alınır ve process variable'a kaydedilir
-
-4. **Bildirim Gönderme**
-   - `NotificationDelegate` çalışır
-   - Süreç sonucu kullanıcıya bildirilir
-
-## Servis Entegrasyonları
-
-- User Service: `http://user-service/api/users`
-- Order Service: `http://order-service/api/orders`
-- Notification Service: `http://notification-service/api/notifications`
-
-## Kurulum ve Çalıştırma
-
-1. Projeyi klonlayın
+1. Projeyi klonlayın:
 ```bash
-git clone [repo-url]
+git clone https://github.com/tuncerburak97/camunda-bpmn.git
 ```
 
-2. Maven ile derleyin
+2. Projeyi derleyin:
 ```bash
 mvn clean install
 ```
 
-3. Uygulamayı başlatın
+3. Uygulamayı çalıştırın:
 ```bash
 mvn spring-boot:run
 ```
 
-4. Camunda Cockpit'e erişin
-```
-http://localhost:8080/camunda/app/
-```
+## API Endpoints
 
-## Süreç İzleme
+### BPMN Process Management
 
-1. **Camunda Cockpit**
-   - Süreç instance'larını görüntüleme
-   - Süreç değişkenlerini inceleme
-   - Hata durumlarını görüntüleme
+- `POST /api/bpmn/deploy` - BPMN sürecini deploy eder
+- `GET /api/bpmn/processes` - Tüm süreçleri listeler
+- `GET /api/bpmn/process/{processKey}` - Belirli bir süreci getirir
 
-2. **REST API**
-   - Süreç durumu sorgulama:
-   ```bash
-   GET http://localhost:8080/engine-rest/process-instance/{processInstanceId}
-   ```
+### Process Execution
 
-## Hata Yönetimi
+- `POST /api/process/start/{processKey}` - Süreci başlatır
+- `POST /api/process/task/{taskId}/execute` - Task'ı execute eder
+- `GET /api/process/instance/{processInstanceId}/tasks` - Aktif task'ları listeler
 
-- Her service task'ta try-catch blokları bulunur
-- Hatalar loglara kaydedilir
-- Kullanıcıya bildirim gönderilir
+### Task API Mapping
 
-## Geliştirme Notları
+- `POST /api/task-mapping` - Task-API mapping oluşturur
+- `GET /api/task-mapping/process/{processId}` - Süreç mapping'lerini listeler
+- `PUT /api/task-mapping/{id}` - Mapping günceller
+- `DELETE /api/task-mapping/{id}` - Mapping siler
 
-1. **Yeni Service Task Ekleme**
-   - Delegate sınıfı oluştur
-   - Service sınıfı oluştur
-   - BPMN diyagramını güncelle
+## Kullanım
 
-2. **Dış Servis Entegrasyonu**
-   - Service URL'lerini application.yaml'da tanımla
-   - RestTemplate kullan
-   - Hata yönetimini ekle 
+1. BPMN dosyasını deploy edin
+2. Task'lar için API mapping'leri oluşturun
+3. Süreci başlatın
+4. Task'ları execute edin
+
+## Lisans
+
+MIT 

@@ -1,5 +1,6 @@
 package com.example.model.entity;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -33,6 +34,9 @@ public class TaskApiMapping {
 
     @Column(columnDefinition = "TEXT")
     private String responseMapping;
+
+    @Column(columnDefinition = "TEXT")
+    private String headers;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

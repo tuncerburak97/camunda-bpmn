@@ -1,8 +1,11 @@
 package com.example.service;
 
+import com.example.client.CamundaRestClient;
+import com.example.model.client.DeploymentResponse;
 import com.example.model.entity.BpmnProcess;
 import com.example.repository.BpmnProcessRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,10 +17,12 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BpmnDeploymentService {
     private final BpmnProcessRepository bpmnProcessRepository;
+    private final CamundaRestClient camundaRestClient;
     private static final String BPMN_STORAGE_PATH = "bpmn-files/";
 
     @Transactional
@@ -29,9 +34,18 @@ public class BpmnDeploymentService {
         }
 
         // Save BPMN file
-        String fileName = processKey + "_" + System.currentTimeMillis() + ".bpmn";
+        String fileName = processKey + ".bpmn";
         Path filePath = storagePath.resolve(fileName);
         Files.copy(bpmnFile.getInputStream(), filePath);
+
+        // Deploy to Camunda Engine using REST client
+        try {
+            camundaRestClient.deployProcess(processName, filePath.toFile());
+            log.info("Successfully deployed BPMN process to Camunda Engine: {}", processKey);
+        } catch (Exception e) {
+            log.error("Failed to deploy BPMN process to Camunda Engine: {}", processKey, e);
+            throw new RuntimeException("Failed to deploy to Camunda Engine", e);
+        }
 
         // Create or update BPMN process
         BpmnProcess bpmnProcess = bpmnProcessRepository.findByProcessKey(processKey)
@@ -66,4 +80,25 @@ public class BpmnDeploymentService {
         return bpmnProcessRepository.findByProcessKey(processKey)
                 .orElseThrow(() -> new RuntimeException("BPMN process not found: " + processKey));
     }
-} 
+
+    public List<DeploymentResponse> getDeployments(
+            String id,
+            String name,
+            String nameLike,
+            String source,
+            Boolean withoutSource,
+            String tenantIdIn,
+            Boolean withoutTenantId,
+            Boolean includeDeploymentsWithoutTenantId,
+            String after,
+            String before,
+            String sortBy,
+            String sortOrder,
+            Integer firstResult,
+            Integer maxResults
+    ) {
+        return camundaRestClient.getDeployments(id, name, nameLike, source, withoutSource, tenantIdIn,
+                withoutTenantId, includeDeploymentsWithoutTenantId, after, before, sortBy, sortOrder,
+                firstResult, maxResults);
+    }
+}

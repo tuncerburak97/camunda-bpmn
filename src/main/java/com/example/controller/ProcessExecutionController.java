@@ -2,7 +2,6 @@ package com.example.controller;
 
 import com.example.service.ProcessExecutionService;
 import lombok.RequiredArgsConstructor;
-import org.camunda.bpm.engine.task.Task;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,9 +40,9 @@ public class ProcessExecutionController {
     }
 
     @GetMapping("/instance/{processInstanceId}/tasks")
-    public ResponseEntity<List<Task>> getActiveTasks(@PathVariable String processInstanceId) {
+    public ResponseEntity<List<Map<String, Object>>> getActiveTasks(@PathVariable String processInstanceId) {
         try {
-            List<Task> tasks = processExecutionService.getActiveTasks(processInstanceId);
+            List<Map<String, Object>> tasks = processExecutionService.getActiveTasks(processInstanceId);
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();

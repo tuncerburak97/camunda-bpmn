@@ -1,11 +1,13 @@
 package com.example.controller;
 
 import com.example.model.entity.TaskApiMapping;
-import com.example.repository.TaskApiMappingRepository;
+import com.example.service.TaskMappingService;
 import com.example.service.TaskExecutionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import javax.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Map;
 
@@ -13,17 +15,25 @@ import java.util.Map;
 @RequestMapping("/api/task-mapping")
 @RequiredArgsConstructor
 public class TaskMappingController {
-    private final TaskApiMappingRepository taskApiMappingRepository;
+    private final TaskMappingService taskMappingService;
     private final TaskExecutionService taskExecutionService;
 
     @PostMapping
     public ResponseEntity<TaskApiMapping> createTaskMapping(@RequestBody TaskApiMapping taskMapping) {
-        return ResponseEntity.ok(taskApiMappingRepository.save(taskMapping));
+        try {
+            return ResponseEntity.ok(taskMappingService.createTaskMapping(taskMapping));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/process/{processId}")
     public ResponseEntity<List<TaskApiMapping>> getTaskMappings(@PathVariable Long processId) {
-        return ResponseEntity.ok(taskApiMappingRepository.findByBpmnProcessId(processId));
+        try {
+            return ResponseEntity.ok(taskMappingService.getTaskMappingsByProcessId(processId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PostMapping("/execute/{processId}/{taskId}")
@@ -34,6 +44,8 @@ public class TaskMappingController {
         try {
             taskExecutionService.executeTask(processId, taskId, variables);
             return ResponseEntity.ok().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
@@ -43,19 +55,24 @@ public class TaskMappingController {
     public ResponseEntity<TaskApiMapping> updateTaskMapping(
             @PathVariable Long id,
             @RequestBody TaskApiMapping taskMapping) {
-        if (!taskApiMappingRepository.existsById(id)) {
+        try {
+            return ResponseEntity.ok(taskMappingService.updateTaskMapping(id, taskMapping));
+        } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
-        taskMapping.setId(id);
-        return ResponseEntity.ok(taskApiMappingRepository.save(taskMapping));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTaskMapping(@PathVariable Long id) {
-        if (!taskApiMappingRepository.existsById(id)) {
+        try {
+            taskMappingService.deleteTaskMapping(id);
+            return ResponseEntity.ok().build();
+        } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
-        taskApiMappingRepository.deleteById(id);
-        return ResponseEntity.ok().build();
     }
 } 

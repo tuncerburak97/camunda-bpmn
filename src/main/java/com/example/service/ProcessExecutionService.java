@@ -1,18 +1,14 @@
 package com.example.service;
 
+import com.example.client.CamundaRestClient;
 import com.example.model.entity.BpmnProcess;
 import com.example.model.entity.TaskApiMapping;
 import com.example.repository.TaskApiMappingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.camunda.bpm.engine.RuntimeService;
-import org.camunda.bpm.engine.TaskService;
-import org.camunda.bpm.engine.RepositoryService;
-import org.camunda.bpm.engine.runtime.ProcessInstance;
-import org.camunda.bpm.engine.task.Task;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import javax.persistence.EntityNotFoundException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,9 +17,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class ProcessExecutionService {
-    private final RuntimeService runtimeService;
-    private final TaskService taskService;
-    private final RepositoryService repositoryService;
+    private final CamundaRestClient camundaRestClient;
     private final BpmnDeploymentService bpmnDeploymentService;
     private final TaskApiMappingRepository taskApiMappingRepository;
     private final TaskExecutionService taskExecutionService;
@@ -33,96 +27,79 @@ public class ProcessExecutionService {
         // Get BPMN process
         BpmnProcess bpmnProcess = bpmnDeploymentService.getBpmnProcessByKey(processKey);
         
-        // Start process instance
-        ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
-                processKey,
-                variables
-        );
-
-        log.info("Started process instance: {} for process: {}", 
-                processInstance.getId(), processKey);
+        // Start process instance using REST client
+        String processInstanceId = camundaRestClient.startProcess(processKey, variables);
+        log.info("Started process instance: {} for process: {}", processInstanceId, processKey);
 
         // Execute first task if available
-        executeNextTasks(processInstance.getId(), bpmnProcess.getId());
+        executeNextTasks(processInstanceId, bpmnProcess.getId());
 
-        return processInstance.getId();
+        return processInstanceId;
     }
 
     @Transactional
     public void executeTask(String taskId) {
-        Task task = taskService.createTaskQuery()
-                .taskId(taskId)
-                .singleResult();
-
-        if (task == null) {
-            throw new RuntimeException("Task not found: " + taskId);
-        }
-
-        String processInstanceId = task.getProcessInstanceId();
-        ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
-                .processInstanceId(processInstanceId)
-                .singleResult();
-
-        if (processInstance == null) {
-            throw new RuntimeException("Process instance not found: " + processInstanceId);
-        }
+        // Get task details
+        Map<String, Object> taskDetails = camundaRestClient.getTask(taskId);
+        String processInstanceId = (String) taskDetails.get("processInstanceId");
+        String taskDefinitionKey = (String) taskDetails.get("taskDefinitionKey");
 
         // Get process variables
-        Map<String, Object> variables = runtimeService.getVariables(processInstanceId);
+        Map<String, Object> variables = camundaRestClient.getProcessVariables(processInstanceId);
 
-        // Get process definition key using RepositoryService
-        String processDefinitionId = processInstance.getProcessDefinitionId();
-        String processDefinitionKey = repositoryService.createProcessDefinitionQuery()
-                .processDefinitionId(processDefinitionId)
-                .singleResult()
-                .getKey();
+        // Get BPMN process
+        BpmnProcess bpmnProcess = bpmnDeploymentService.getBpmnProcessByKey((String) taskDetails.get("processDefinitionKey"));
 
-        BpmnProcess bpmnProcess = bpmnDeploymentService.getBpmnProcessByKey(processDefinitionKey);
-
-        // Execute task
+        // Execute task mapping
         TaskApiMapping taskMapping = taskApiMappingRepository
-                .findByBpmnProcessIdAndTaskId(bpmnProcess.getId(), task.getTaskDefinitionKey())
-                .orElseThrow(() -> new RuntimeException("Task mapping not found for task: " + task.getTaskDefinitionKey()));
+                .findByBpmnProcessIdAndTaskId(bpmnProcess.getId(), taskDefinitionKey)
+                .orElseThrow(() -> new EntityNotFoundException("Task mapping not found for task: " + taskDefinitionKey));
 
         // Execute API call
-        Map<String, Object> resultVariables = new HashMap<>(variables);
-        taskExecutionService.executeTask(bpmnProcess.getId(), task.getTaskDefinitionKey(), resultVariables);
+        taskExecutionService.executeTask(bpmnProcess.getId(), taskDefinitionKey, variables);
 
-        // Complete the task with updated variables
-        taskService.complete(taskId, resultVariables);
+        // Complete the task
+        camundaRestClient.completeTask(taskId, variables);
+        log.info("Successfully completed task: {}", taskId);
 
         // Execute next tasks
         executeNextTasks(processInstanceId, bpmnProcess.getId());
     }
 
     private void executeNextTasks(String processInstanceId, Long bpmnProcessId) {
-        List<Task> tasks = taskService.createTaskQuery()
-                .processInstanceId(processInstanceId)
-                .list();
+        List<Map<String, Object>> tasks = camundaRestClient.getTasksByProcessInstanceId(processInstanceId);
 
-        for (Task task : tasks) {
+        log.info("Found {} tasks to execute for process instance: {}", tasks.size(), processInstanceId);
+
+        for (Map<String, Object> task : tasks) {
             try {
-                Map<String, Object> variables = runtimeService.getVariables(processInstanceId);
+                String taskId = (String) task.get("id");
+                String taskName = (String) task.get("name");
+                String taskDefinitionKey = (String) task.get("taskDefinitionKey");
+
+                log.info("Executing task: {} ({})", taskName, taskId);
+
+                Map<String, Object> variables = camundaRestClient.getProcessVariables(processInstanceId);
                 TaskApiMapping taskMapping = taskApiMappingRepository
-                        .findByBpmnProcessIdAndTaskId(bpmnProcessId, task.getTaskDefinitionKey())
-                        .orElseThrow(() -> new RuntimeException("Task mapping not found for task: " + task.getTaskDefinitionKey()));
+                        .findByBpmnProcessIdAndTaskId(bpmnProcessId, taskDefinitionKey)
+                        .orElseThrow(() -> new EntityNotFoundException("Task mapping not found for task: " + taskDefinitionKey));
 
                 // Execute API call
-                taskExecutionService.executeTask(bpmnProcessId, task.getTaskDefinitionKey(), variables);
+                taskExecutionService.executeTask(bpmnProcessId, taskDefinitionKey, variables);
 
                 // Complete the task
-                taskService.complete(task.getId(), variables);
+                camundaRestClient.completeTask(taskId, variables);
+                log.info("Successfully completed task: {}", taskId);
             } catch (Exception e) {
-                log.error("Error executing task: {}", task.getId(), e);
-                // You might want to handle this differently based on your requirements
+                log.error("Error executing task: {}", task.get("id"), e);
                 break;
             }
         }
     }
 
-    public List<Task> getActiveTasks(String processInstanceId) {
-        return taskService.createTaskQuery()
-                .processInstanceId(processInstanceId)
-                .list();
+    public List<Map<String, Object>> getActiveTasks(String processInstanceId) {
+        List<Map<String, Object>> tasks = camundaRestClient.getTasksByProcessInstanceId(processInstanceId);
+        log.info("Found {} active tasks for process instance: {}", tasks.size(), processInstanceId);
+        return tasks;
     }
 } 
