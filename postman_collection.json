@@ -1,0 +1,251 @@
+{
+	"info": {
+		"_postman_id": "bpmn-workflow-integration",
+		"name": "BPMN Workflow Integration",
+		"description": "API collection for BPMN workflow integration system",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "BPMN Process Management",
+			"item": [
+				{
+					"name": "Deploy BPMN Process",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "processName",
+									"value": "Sipariş Süreci",
+									"type": "text"
+								},
+								{
+									"key": "processKey",
+									"value": "order-process",
+									"type": "text"
+								},
+								{
+									"key": "bpmnFile",
+									"type": "file",
+									"src": "/path/to/order-process.bpmn"
+								},
+								{
+									"key": "description",
+									"value": "Sipariş işleme süreci",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/bpmn/deploy",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "bpmn", "deploy"]
+						},
+						"description": "BPMN süreç dosyasını sisteme yükler"
+					}
+				},
+				{
+					"name": "Get All BPMN Processes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/bpmn/processes",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "bpmn", "processes"]
+						},
+						"description": "Tüm BPMN süreçlerini listeler"
+					}
+				},
+				{
+					"name": "Get BPMN Process",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/bpmn/process/order-process",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "bpmn", "process", "order-process"]
+						},
+						"description": "BPMN süreç bilgilerini getirir"
+					}
+				}
+			]
+		},
+		{
+			"name": "Process Execution",
+			"item": [
+				{
+					"name": "Start Process",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orderId\": \"ORD-123\",\n    \"amount\": 1500.00,\n    \"currency\": \"TRY\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/process/start/order-process",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "process", "start", "order-process"]
+						},
+						"description": "BPMN sürecini başlatır"
+					}
+				},
+				{
+					"name": "Execute Task",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/process/task/{{taskId}}/execute",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "process", "task", "{{taskId}}", "execute"]
+						},
+						"description": "Belirli bir task'ı execute eder"
+					}
+				},
+				{
+					"name": "Get Active Tasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/process/instance/{{processInstanceId}}/tasks",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "process", "instance", "{{processInstanceId}}", "tasks"]
+						},
+						"description": "Süreç instance'ındaki aktif task'ları listeler"
+					}
+				}
+			]
+		},
+		{
+			"name": "Task API Mapping",
+			"item": [
+				{
+					"name": "Create Task Mapping",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"bpmnProcess\": {\n        \"id\": 1\n    },\n    \"taskId\": \"Task_Payment\",\n    \"taskName\": \"Ödeme İşlemi\",\n    \"apiUrl\": \"http://payment-service/api/process-payment\",\n    \"httpMethod\": \"POST\",\n    \"requestTemplate\": \"{\n        \\\"orderId\\\": \\\"${orderId}\\\",\n        \\\"amount\\\": ${amount},\n        \\\"currency\\\": \\\"${currency}\\\"\n    }\",\n    \"responseMapping\": \"{\n        \\\"paymentId\\\": \\\"response.paymentId\\\",\n        \\\"status\\\": \\\"response.status\\\"\n    }\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/task-mapping",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-mapping"]
+						},
+						"description": "Task için API mapping oluşturur"
+					}
+				},
+				{
+					"name": "Get Task Mappings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-mapping/process/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-mapping", "process", "1"]
+						},
+						"description": "Süreç için tanımlı tüm task mapping'leri getirir"
+					}
+				},
+				{
+					"name": "Execute Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orderId\": \"ORD-123\",\n    \"amount\": 1500.00,\n    \"currency\": \"TRY\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/task-mapping/execute/1/Task_Payment",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-mapping", "execute", "1", "Task_Payment"]
+						},
+						"description": "Task'ı execute eder ve ilgili API'yi çağırır"
+					}
+				},
+				{
+					"name": "Update Task Mapping",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"bpmnProcess\": {\n        \"id\": 1\n    },\n    \"taskId\": \"Task_Payment\",\n    \"taskName\": \"Ödeme İşlemi\",\n    \"apiUrl\": \"http://payment-service/api/v2/process-payment\",\n    \"httpMethod\": \"POST\",\n    \"requestTemplate\": \"{\n        \\\"orderId\\\": \\\"${orderId}\\\",\n        \\\"amount\\\": ${amount},\n        \\\"currency\\\": \\\"${currency}\\\"\n    }\",\n    \"responseMapping\": \"{\n        \\\"paymentId\\\": \\\"response.paymentId\\\",\n        \\\"status\\\": \\\"response.status\\\"\n    }\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/task-mapping/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-mapping", "1"]
+						},
+						"description": "Task mapping bilgilerini günceller"
+					}
+				},
+				{
+					"name": "Delete Task Mapping",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-mapping/1",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-mapping", "1"]
+						},
+						"description": "Task mapping'i siler"
+					}
+				}
+			]
+		}
+	]
+} 
