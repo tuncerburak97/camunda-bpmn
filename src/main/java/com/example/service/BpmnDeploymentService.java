@@ -42,22 +42,24 @@ public class BpmnDeploymentService {
         try {
             camundaRestClient.deployProcess(processName, filePath.toFile());
             log.info("Successfully deployed BPMN process to Camunda Engine: {}", processKey);
+            // Create or update BPMN process
+            BpmnProcess bpmnProcess = bpmnProcessRepository.findByProcessKey(processKey)
+                    .orElse(new BpmnProcess());
+
+            bpmnProcess.setProcessName(processName);
+            bpmnProcess.setProcessKey(processKey);
+            bpmnProcess.setBpmnFilePath(filePath.toString());
+            bpmnProcess.setDescription(description);
+            bpmnProcess.setLastDeployedAt(LocalDateTime.now());
+            //bpmnProcess.setBpmnDeploymentId(deploy.getId());
+            return bpmnProcessRepository.save(bpmnProcess);
+
         } catch (Exception e) {
             log.error("Failed to deploy BPMN process to Camunda Engine: {}", processKey, e);
             throw new RuntimeException("Failed to deploy to Camunda Engine", e);
         }
 
-        // Create or update BPMN process
-        BpmnProcess bpmnProcess = bpmnProcessRepository.findByProcessKey(processKey)
-                .orElse(new BpmnProcess());
 
-        bpmnProcess.setProcessName(processName);
-        bpmnProcess.setProcessKey(processKey);
-        bpmnProcess.setBpmnFilePath(filePath.toString());
-        bpmnProcess.setDescription(description);
-        bpmnProcess.setLastDeployedAt(LocalDateTime.now());
-
-        return bpmnProcessRepository.save(bpmnProcess);
     }
 
     public File getBpmnFile(String processKey) {

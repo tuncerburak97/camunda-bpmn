@@ -21,6 +21,9 @@ public class BpmnProcess {
     @Column(nullable = false)
     private String bpmnFilePath;
 
+    //@Column(nullable = false)
+    //private String bpmnDeploymentId;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

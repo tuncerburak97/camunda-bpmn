@@ -1,5 +1,6 @@
 package com.example.client;
 
+import com.example.model.client.CreateDeploymentResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,7 +52,7 @@ public class CamundaRestClient {
             camundaRestUrl + "/deployment/create",
             HttpMethod.POST,
             requestEntity,
-            String.class
+                String.class
         );
 
         if (!response.getStatusCode().is2xxSuccessful()) {
