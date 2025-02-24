@@ -15,6 +15,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 import com.example.model.client.DeploymentResponse;
+import java.util.HashMap;
 
 @Slf4j
 @Component
@@ -70,24 +71,51 @@ public class CamundaRestClient {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
+        // Format variables for Camunda
+        Map<String, Object> formattedVariables = new HashMap<>();
+        variables.forEach((key, value) -> {
+            Map<String, Object> variableInfo = new HashMap<>();
+            variableInfo.put("value", value);
+            // Determine type based on value
+            String type = determineType(value);
+            variableInfo.put("type", type);
+            formattedVariables.put(key, variableInfo);
+        });
+
         Map<String, Object> body = Map.of(
-            "variables", variables
+            "variables", formattedVariables
         );
 
         HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-            camundaRestUrl + "/process-definition/key/" + processKey + "/start",
-            HttpMethod.POST,
-            requestEntity,
-            Map.class
-        );
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    camundaRestUrl + "/process-definition/key/" + processKey + "/start",
+                    HttpMethod.POST,
+                    requestEntity,
+                    Map.class
+            );
 
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("Process not started: " + response.getBody());
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Process not started: " + response.getBody());
+            }
+
+            return (String) response.getBody().get("id");
+        }catch (Exception e){
+            log.error("Error start process",e);
+            throw e;
         }
+    }
 
-        return (String) response.getBody().get("id");
+    private String determineType(Object value) {
+        if (value instanceof String) return "String";
+        if (value instanceof Integer) return "Integer";
+        if (value instanceof Long) return "Long";
+        if (value instanceof Double) return "Double";
+        if (value instanceof Boolean) return "Boolean";
+        if (value instanceof Map) return "Json";
+        if (value instanceof List) return "Json";
+        return "String"; // default type
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.example.controller;
 
+import com.example.model.api.request.DeleteDeploymentRequest;
 import com.example.model.api.response.DeploymentListResponse;
 import com.example.model.client.DeploymentResponse;
 import com.example.model.entity.BpmnProcess;
@@ -31,6 +32,11 @@ public class BpmnDeploymentController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    @DeleteMapping("/deploy")
+    public ResponseEntity<List<String>> deleteDeployment(@RequestBody DeleteDeploymentRequest request){
+        return ResponseEntity.ok(bpmnDeploymentService.deleteDeployment(request.getIds()));
     }
 
     @GetMapping("/processes")

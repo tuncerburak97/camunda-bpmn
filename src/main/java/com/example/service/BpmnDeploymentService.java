@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -102,5 +103,18 @@ public class BpmnDeploymentService {
         return camundaRestClient.getDeployments(id, name, nameLike, source, withoutSource, tenantIdIn,
                 withoutTenantId, includeDeploymentsWithoutTenantId, after, before, sortBy, sortOrder,
                 firstResult, maxResults);
+    }
+
+    public List<String> deleteDeployment(List<String> deploymentIDs){
+        List<String> response = new ArrayList<>();
+        for (var deployId : deploymentIDs){
+            try {
+                camundaRestClient.deleteDeployment(deployId,true);
+                response.add(deployId);
+            }catch (Exception e){
+                log.error("Error delete deployment {}",deployId,e);
+            }
+        }
+        return response;
     }
 }

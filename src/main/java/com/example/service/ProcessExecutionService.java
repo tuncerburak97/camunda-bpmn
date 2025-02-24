@@ -28,7 +28,7 @@ public class ProcessExecutionService {
         BpmnProcess bpmnProcess = bpmnDeploymentService.getBpmnProcessByKey(processKey);
         
         // Start process instance using REST client
-        String processInstanceId = camundaRestClient.startProcess(processKey, variables);
+        String processInstanceId = camundaRestClient.startProcess(bpmnProcess.getProcessKey(), variables);
         log.info("Started process instance: {} for process: {}", processInstanceId, processKey);
 
         // Execute first task if available
