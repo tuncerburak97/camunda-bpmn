@@ -31,8 +31,30 @@ public class ProcessExecutionService {
         String processInstanceId = camundaRestClient.startProcess(bpmnProcess.getProcessKey(), variables);
         log.info("Started process instance: {} for process: {}", processInstanceId, processKey);
 
-        // Execute first task if available
-        executeNextTasks(processInstanceId, bpmnProcess.getId());
+        try {
+            // Küçük bir bekleme ekleyelim
+            Thread.sleep(1000);
+            
+            // Process variables'ı kontrol edelim
+            Map<String, Object> processVariables = camundaRestClient.getProcessVariables(processInstanceId);
+            log.info("Process variables after start: {}", processVariables);
+            
+            // Task'ları kontrol edelim
+            List<Map<String, Object>> tasks = camundaRestClient.getTasksByProcessInstanceId(processInstanceId);
+            log.info("Found {} tasks for process instance: {}", tasks.size(), processInstanceId);
+            
+            if (tasks.isEmpty()) {
+                log.warn("No tasks found for process instance: {}. This might be because:");
+                log.warn("1. The process might be using Service Tasks instead of User Tasks");
+                log.warn("2. The process might have completed immediately");
+                log.warn("3. There might be an issue with the process definition");
+            }
+
+            // Execute first task if available
+            executeNextTasks(processInstanceId, bpmnProcess.getId());
+        } catch (InterruptedException e) {
+            log.error("Error while waiting for tasks", e);
+        }
 
         return processInstanceId;
     }

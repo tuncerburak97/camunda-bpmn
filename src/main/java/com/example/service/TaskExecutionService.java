@@ -3,6 +3,7 @@ package com.example.service;
 import com.example.model.entity.TaskApiMapping;
 import com.example.repository.TaskApiMappingRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.camunda.bpm.client.ExternalTaskClient;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -12,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
+import java.util.HashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TaskExecutionService {
@@ -83,5 +86,32 @@ public class TaskExecutionService {
         } catch (Exception e) {
             throw new RuntimeException("Error processing response mapping", e);
         }
+    }
+
+    public Map<String, Object> executeLogin(Map<String, Object> variables) {
+        log.info("Executing login with variables: {}", variables);
+        
+        // Burada gerçek login işlemi yapılacak
+        // Örnek olarak başarılı login simüle ediyoruz
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", "sample-token-" + System.currentTimeMillis());
+        result.put("loginSuccess", true);
+        
+        log.info("Login completed with result: {}", result);
+        return result;
+    }
+
+    public Map<String, Object> executeGetProfile(Map<String, Object> variables) {
+        log.info("Executing get profile with variables: {}", variables);
+        
+        // Burada gerçek profil bilgisi çekme işlemi yapılacak
+        // Örnek olarak profil bilgisi simüle ediyoruz
+        Map<String, Object> result = new HashMap<>();
+        result.put("email", "user@example.com");
+        result.put("name", "Test User");
+        result.put("profileFound", true);
+        
+        log.info("Get profile completed with result: {}", result);
+        return result;
     }
 } 
