@@ -124,7 +124,7 @@ public class ExternalTaskHandler {
         try {
             // Get all variables from the task
             Map<String, Object> variables = externalTask.getAllVariables();
-            log.debug("Task variables: {}", variables);
+            log.info("Task variables received from process instance: {}", variables);
             
             // Find task mapping
             taskApiMappingRepository.findByTaskId(taskId)
@@ -138,7 +138,11 @@ public class ExternalTaskHandler {
                                 variables
                             );
                             
+                            // Log the result variables for debugging
+                            log.info("Task execution result variables to be sent back to process instance: {}", result);
+                            
                             // Complete the task with results
+                            // Ensure all variables are passed back to the process instance
                             externalTaskService.complete(externalTask, result);
                             log.info("Successfully completed task: {} (topic: {}) for process instance: {}", 
                                 taskId, topicName, processInstanceId);

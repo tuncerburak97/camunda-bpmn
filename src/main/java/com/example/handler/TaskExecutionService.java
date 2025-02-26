@@ -43,6 +43,8 @@ public class TaskExecutionService {
             return variables;
         }
 
+        log.info("Executing task: {} with variables: {}", taskId, variables);
+        
         try {
             // Validate request
             if (taskMapping.getRequestSchema() != null) {
@@ -52,6 +54,9 @@ public class TaskExecutionService {
             // Prepare request
             HttpHeaders headers = prepareHeaders(taskMapping.getHeaders(), variables);
             String requestBody = processTemplate(taskMapping.getRequestTemplate(), variables);
+            
+            log.debug("Prepared request for {}: URL={}, Method={}, Headers={}, Body={}", 
+                    taskId, taskMapping.getApiUrl(), taskMapping.getHttpMethod(), headers, requestBody);
 
             // Execute API call with timeout
             HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
@@ -61,6 +66,9 @@ public class TaskExecutionService {
                     requestEntity,
                     String.class
             );
+            
+            log.debug("Received response for {}: Status={}, Body={}", 
+                    taskId, response.getStatusCode(), response.getBody());
 
             // Validate response
             if (taskMapping.getResponseSchema() != null) {
@@ -69,15 +77,18 @@ public class TaskExecutionService {
 
             // Process response
             Map<String, Object> result = new HashMap<>(variables);
-            if (taskMapping.getResponseMapping() != null) {
+            if (taskMapping.getResponseMapping() != null && response.getBody() != null) {
+                log.debug("Processing response mapping: {}", taskMapping.getResponseMapping());
                 Map<String, Object> mappedResponse = processResponseMapping(response.getBody(), taskMapping.getResponseMapping());
+                log.debug("Mapped response: {}", mappedResponse);
                 result.putAll(mappedResponse);
             }
-
+            
+            log.info("Successfully executed task: {} with result variables: {}", taskId, result);
             return result;
 
         } catch (Exception e) {
-            log.error("Error executing task: {} - {}", taskId, e.getMessage());
+            log.error("Error executing task: {} - {}", taskId, e.getMessage(), e);
             
             if (taskMapping.getFailOnError()) {
                 throw new RuntimeException("Task execution failed: " + e.getMessage(), e);
@@ -101,16 +112,34 @@ public class TaskExecutionService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        if (headerTemplate != null) {
+        if (headerTemplate != null && !headerTemplate.trim().isEmpty()) {
             try {
+                // Debug log - header template ve değişkenler
+                log.debug("Header template before processing: {}", headerTemplate);
+                log.debug("Variables for header processing: {}", variables);
+                
+                // Template'i işle
+                String processedTemplate = processTemplate(headerTemplate, variables);
+                log.debug("Processed header template: {}", processedTemplate);
+                
+                // JSON'a çevir
                 Map<String, String> headerMap = objectMapper.readValue(
-                    processTemplate(headerTemplate, variables),
+                    processedTemplate,
                     Map.class
                 );
-                headerMap.forEach(headers::set);
+                
+                // Her bir header'ı ekle
+                headerMap.forEach((key, value) -> {
+                    log.debug("Adding header: {} = {}", key, value);
+                    headers.set(key, value);
+                });
+                
+                log.debug("Final headers: {}", headers);
             } catch (Exception e) {
-                log.error("Error processing headers", e);
+                log.error("Error processing headers: {}", e.getMessage(), e);
             }
+        } else {
+            log.debug("No header template provided or empty template");
         }
 
         return headers;
@@ -121,35 +150,70 @@ public class TaskExecutionService {
         
         String processed = template;
         for (Map.Entry<String, Object> entry : variables.entrySet()) {
-            processed = processed.replace("${" + entry.getKey() + "}", 
-                    entry.getValue() != null ? entry.getValue().toString() : "");
+            String placeholder = "${" + entry.getKey() + "}";
+            String value = entry.getValue() != null ? entry.getValue().toString() : "";
+            
+            // Debug log - değişken değiştirme
+            if (processed.contains(placeholder)) {
+                log.debug("Replacing placeholder '{}' with value '{}'", placeholder, value);
+            }
+            
+            processed = processed.replace(placeholder, value);
         }
         return processed;
     }
 
     private Map<String, Object> processResponseMapping(String responseBody, String mappingTemplate) {
         try {
+            log.debug("Processing response mapping. Response body: {}, Mapping template: {}", responseBody, mappingTemplate);
+            
+            // Response body'yi JSON'a çevir
             Map<String, Object> responseMap = objectMapper.readValue(responseBody, Map.class);
+            log.debug("Parsed response map: {}", responseMap);
+            
+            // Mapping template'i JSON'a çevir
             Map<String, String> mappings = objectMapper.readValue(mappingTemplate, Map.class);
+            log.debug("Parsed mappings: {}", mappings);
+            
             Map<String, Object> result = new HashMap<>();
             
             for (Map.Entry<String, String> mapping : mappings.entrySet()) {
-                String[] path = mapping.getValue().split("\\.");
+                String targetKey = mapping.getKey();
+                String sourcePath = mapping.getValue();
+                log.debug("Processing mapping: {} -> {}", sourcePath, targetKey);
+                
+                // "response." ile başlayan path'leri düzelt
+                if (sourcePath.startsWith("response.")) {
+                    sourcePath = sourcePath.substring("response.".length());
+                }
+                
+                String[] path = sourcePath.split("\\.");
                 Object value = responseMap;
                 
+                // Path'i takip ederek değeri bul
                 for (String key : path) {
                     if (value instanceof Map) {
                         value = ((Map) value).get(key);
+                        log.debug("Following path '{}', current value: {}", key, value);
+                    } else {
+                        log.warn("Cannot follow path '{}' as current value is not a map: {}", key, value);
+                        value = null;
+                        break;
                     }
                 }
                 
                 if (value != null) {
-                    result.put(mapping.getKey(), value);
+                    log.debug("Setting result variable '{}' to value: {}", targetKey, value);
+                    result.put(targetKey, value);
+                } else {
+                    log.warn("No value found for path '{}', skipping mapping for '{}'", sourcePath, targetKey);
                 }
             }
             
+            log.debug("Final mapped result: {}", result);
             return result;
         } catch (Exception e) {
+            log.error("Error processing response mapping: {}", e.getMessage(), e);
             throw new RuntimeException("Error processing response mapping", e);
         }
     }
