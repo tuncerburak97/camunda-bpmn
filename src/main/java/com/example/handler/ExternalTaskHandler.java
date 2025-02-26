@@ -98,7 +98,7 @@ public class ExternalTaskHandler {
                 }
             }
             
-            // Artık kullanılmayan subscription'ları logla (şu an için silmiyoruz)
+            // Unused topic subscriptions (not used in the current process)
             Set<String> unusedTopics = new HashSet<>(activeSubscriptions.keySet());
             unusedTopics.removeAll(allTaskIds);
             

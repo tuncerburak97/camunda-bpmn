@@ -21,4 +21,4 @@ public class ErrorResponse {
     private String message;
     private String path;
     private Map<String, String> validationErrors;
-} 
+}
