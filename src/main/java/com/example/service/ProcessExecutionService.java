@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.client.CamundaRestClient;
+import com.example.handler.TaskExecutionService;
 import com.example.model.entity.BpmnProcess;
 import com.example.model.entity.TaskApiMapping;
 import com.example.repository.TaskApiMappingRepository;
@@ -9,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityNotFoundException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +31,7 @@ public class ProcessExecutionService {
         String processInstanceId = camundaRestClient.startProcess(bpmnProcess.getProcessKey(), variables);
         log.info("Started process instance: {} for process: {}", processInstanceId, processKey);
 
+
         try {
             // Küçük bir bekleme ekleyelim
             Thread.sleep(1000);
@@ -39,24 +40,24 @@ public class ProcessExecutionService {
             Map<String, Object> processVariables = camundaRestClient.getProcessVariables(processInstanceId);
             log.info("Process variables after start: {}", processVariables);
             
-            // Task'ları kontrol edelim
-            List<Map<String, Object>> tasks = camundaRestClient.getTasksByProcessInstanceId(processInstanceId);
-            log.info("Found {} tasks for process instance: {}", tasks.size(), processInstanceId);
+            // External Task'ları kontrol edelim
+            List<Map<String, Object>> externalTasks = camundaRestClient.getExternalTasksByProcessInstanceId(processInstanceId);
+            log.info("Found {} external tasks for process instance: {}", externalTasks.size(), processInstanceId);
             
-            if (tasks.isEmpty()) {
-                log.warn("No tasks found for process instance: {}. This might be because:");
-                log.warn("1. The process might be using Service Tasks instead of User Tasks");
+            if (externalTasks.isEmpty()) {
+                log.warn("No external tasks found for process instance: {}. This might be because:", processInstanceId);
+                log.warn("1. The process might not be using External Tasks");
                 log.warn("2. The process might have completed immediately");
                 log.warn("3. There might be an issue with the process definition");
+                log.warn("4. The External Task Worker might not be properly configured");
             }
 
-            // Execute first task if available
-            executeNextTasks(processInstanceId, bpmnProcess.getId());
+            return processInstanceId;
         } catch (InterruptedException e) {
             log.error("Error while waiting for tasks", e);
+            return processInstanceId;
         }
 
-        return processInstanceId;
     }
 
     @Transactional

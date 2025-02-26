@@ -38,6 +38,37 @@ public class TaskApiMapping {
     @Column(columnDefinition = "TEXT")
     private String headers;
 
+    // Retry configuration
+    @Column(nullable = false)
+    private Integer maxRetries = 3;
+
+    @Column(nullable = false)
+    private Long retryTimeout = 60000L; // milliseconds
+
+    @Column(nullable = false)
+    private Long timeout = 30000L; // API call timeout in milliseconds
+
+    // Error handling
+    @Column(nullable = false)
+    private Boolean failOnError = true;
+
+    @Column(columnDefinition = "TEXT")
+    private String errorMapping;
+
+    // Validation
+    @Column(columnDefinition = "TEXT")
+    private String requestSchema;
+
+    @Column(columnDefinition = "TEXT")
+    private String responseSchema;
+
+    // Metadata
+    @Column(nullable = false)
+    private Boolean enabled = true;
+
+    @Column
+    private String description;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

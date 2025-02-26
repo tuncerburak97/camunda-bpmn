@@ -31,66 +31,72 @@ public class CamundaRestClient {
      * Deploy BPMN process
      */
     public void deployProcess(String deploymentName, File bpmnFile) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        String endpoint = "/deployment/create";
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        
-        // Required fields
-        body.add("deployment-name", deploymentName);
-        
-        // Optional fields
-        body.add("enable-duplicate-filtering", "true");
-        body.add("deployment-source", "rest-api");
-        
-        // Add binary file
-        FileSystemResource fileResource = new FileSystemResource(bpmnFile);
-        body.add("data", fileResource);
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            
+            // Required fields
+            body.add("deployment-name", deploymentName);
+            
+            // Optional fields
+            body.add("enable-duplicate-filtering", "true");
+            body.add("deployment-source", "rest-api");
+            
+            // Add binary file
+            FileSystemResource fileResource = new FileSystemResource(bpmnFile);
+            body.add("data", fileResource);
 
-        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<String> response = restTemplate.exchange(
-            camundaRestUrl + "/deployment/create",
-            HttpMethod.POST,
-            requestEntity,
+            ResponseEntity<String> response = restTemplate.exchange(
+                camundaRestUrl + endpoint,
+                HttpMethod.POST,
+                requestEntity,
                 String.class
-        );
+            );
 
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            log.error("Deploy error: {}", response.getBody());
-            throw new RuntimeException("Process not deployed to Camunda: " + response.getBody());
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.error("Deploy error: {}", response.getBody());
+                throw new RuntimeException("Process not deployed to Camunda: " + response.getBody());
+            }
+            
+            log.info("Process deployed successfully: {}", deploymentName);
+        } catch (Exception ex) {
+            CamundaRestClientExceptionHandler.handleException(ex, endpoint);
         }
-        
-        log.info("Process deployed successfully: {}", deploymentName);
     }
 
     /**
      * Start process instance
      */
     public String startProcess(String processKey, Map<String, Object> variables) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        // Format variables for Camunda
-        Map<String, Object> formattedVariables = new HashMap<>();
-        variables.forEach((key, value) -> {
-            Map<String, Object> variableInfo = new HashMap<>();
-            variableInfo.put("value", value);
-            // Determine type based on value
-            String type = determineType(value);
-            variableInfo.put("type", type);
-            formattedVariables.put(key, variableInfo);
-        });
-
-        Map<String, Object> body = Map.of(
-            "variables", formattedVariables
-        );
-
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
+        String endpoint = "/process-definition/key/" + processKey + "/start";
         try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // Format variables for Camunda
+            Map<String, Object> formattedVariables = new HashMap<>();
+            variables.forEach((key, value) -> {
+                Map<String, Object> variableInfo = new HashMap<>();
+                variableInfo.put("value", value);
+                // Determine type based on value
+                String type = determineType(value);
+                variableInfo.put("type", type);
+                formattedVariables.put(key, variableInfo);
+            });
+
+            Map<String, Object> body = Map.of(
+                "variables", formattedVariables
+            );
+
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
             ResponseEntity<Map> response = restTemplate.exchange(
-                    camundaRestUrl + "/process-definition/key/" + processKey + "/start",
+                    camundaRestUrl + endpoint,
                     HttpMethod.POST,
                     requestEntity,
                     Map.class
@@ -101,9 +107,9 @@ public class CamundaRestClient {
             }
 
             return (String) response.getBody().get("id");
-        }catch (Exception e){
-            log.error("Error start process",e);
-            throw e;
+        } catch (Exception ex) {
+            CamundaRestClientExceptionHandler.handleException(ex, endpoint);
+            return null; // This line will never be reached as handleException always throws an exception
         }
     }
 
@@ -274,6 +280,24 @@ public class CamundaRestClient {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new RuntimeException("Error retrieving deployments");
+        }
+
+        return response.getBody();
+    }
+
+    /**
+     * Process instance'a ait external task'ları getirir
+     */
+    public List<Map<String, Object>> getExternalTasksByProcessInstanceId(String processInstanceId) {
+        ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+            camundaRestUrl + "/external-task?processInstanceId=" + processInstanceId,
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+        );
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("External tasks not retrieved: " + processInstanceId);
         }
 
         return response.getBody();

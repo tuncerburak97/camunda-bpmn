@@ -9,4 +9,5 @@ public interface TaskApiMappingRepository extends JpaRepository<TaskApiMapping, 
     List<TaskApiMapping> findByBpmnProcessId(Long bpmnProcessId);
     Optional<TaskApiMapping> findByBpmnProcessIdAndTaskId(Long bpmnProcessId, String taskId);
     Optional<TaskApiMapping> findByBpmnProcessIdAndTaskName(Long bpmnProcessId, String taskName);
+    Optional<TaskApiMapping> findByTaskId(String taskId);
 } 

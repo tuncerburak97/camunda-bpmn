@@ -25,4 +25,14 @@ camunda:
     filter:
       create: All Tasks
     database:
-      type: h2 
+      type: h2
+  rest:
+    url: http://localhost:8080/engine-rest
+  external-task:
+    enabled: true
+    lock-duration: 20000
+    async-response-timeout: 10000
+    max-tasks: 1
+    retry-count: 3
+    retry-timeout: 60000
+    worker-id: dynamic-external-task-worker 
