@@ -2,28 +2,24 @@ package com.example.handler;
 
 import com.example.model.entity.TaskApiMapping;
 import com.example.repository.TaskApiMappingRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
+import com.example.util.JsonUtils;
+import com.example.util.RestClient;
+import com.example.model.common.RestRequestModel;
+import com.example.model.common.RestResponseModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Set;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TaskExecutionService {
     private final TaskApiMappingRepository taskApiMappingRepository;
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
+    private final RestClient restClient;
+    private final JsonUtils jsonUtils;
 
     //@Retryable(maxAttemptsExpression = "#{#taskMapping.maxRetries}",
     //           backoff = @Backoff(delayExpression = "#{#taskMapping.retryTimeout}"))
@@ -48,31 +44,41 @@ public class TaskExecutionService {
         try {
             // Validate request
             if (taskMapping.getRequestSchema() != null) {
-                validateJson(processTemplate(taskMapping.getRequestTemplate(), variables), taskMapping.getRequestSchema());
+                jsonUtils.validateJsonSchema(processTemplate(taskMapping.getRequestTemplate(), variables), taskMapping.getRequestSchema());
             }
 
             // Prepare request
-            HttpHeaders headers = prepareHeaders(taskMapping.getHeaders(), variables);
+            Map<String, String> headers = prepareHeaders(taskMapping.getHeaders(), variables);
             String requestBody = processTemplate(taskMapping.getRequestTemplate(), variables);
             
             log.debug("Prepared request for {}: URL={}, Method={}, Headers={}, Body={}", 
                     taskId, taskMapping.getApiUrl(), taskMapping.getHttpMethod(), headers, requestBody);
 
             // Execute API call with timeout
-            HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
-            ResponseEntity<String> response = restTemplate.exchange(
-                    taskMapping.getApiUrl(),
-                    HttpMethod.valueOf(taskMapping.getHttpMethod()),
-                    requestEntity,
-                    String.class
-            );
+            RestRequestModel<String> requestModel = RestRequestModel.<String>builder()
+                    .url(taskMapping.getApiUrl())
+                    .method(HttpMethod.valueOf(taskMapping.getHttpMethod()))
+                    .headers(headers)
+                    .body(requestBody)
+                    .responseType(String.class)
+                    .timeout(Math.toIntExact(taskMapping.getTimeout()))
+                    .maxRetries(taskMapping.getMaxRetries())
+                    .retryDelay(Math.toIntExact(taskMapping.getRetryTimeout()))
+                    .failOnError(taskMapping.getFailOnError())
+                    .build();
+            
+            RestResponseModel<String> response = restClient.execute(requestModel);
+            
+            if (!response.isSuccess()) {
+                throw new RuntimeException("API call failed: " + response.getErrorMessage());
+            }
             
             log.debug("Received response for {}: Status={}, Body={}", 
-                    taskId, response.getStatusCode(), response.getBody());
+                    taskId, response.getStatus(), response.getBody());
 
             // Validate response
             if (taskMapping.getResponseSchema() != null) {
-                validateJson(response.getBody(), taskMapping.getResponseSchema());
+                jsonUtils.validateJsonSchema(response.getBody(), taskMapping.getResponseSchema());
             }
 
             // Process response
@@ -108,32 +114,21 @@ public class TaskExecutionService {
         }
     }
 
-    private HttpHeaders prepareHeaders(String headerTemplate, Map<String, Object> variables) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
+    private Map<String, String> prepareHeaders(String headerTemplate, Map<String, Object> variables) {
+        Map<String, String> headers = new HashMap<>();
+        
         if (headerTemplate != null && !headerTemplate.trim().isEmpty()) {
             try {
-                // Debug log - header template ve değişkenler
+                // Debug log - header template and variables
                 log.debug("Header template before processing: {}", headerTemplate);
                 log.debug("Variables for header processing: {}", variables);
                 
-                // Template'i işle
+                // Process template
                 String processedTemplate = processTemplate(headerTemplate, variables);
                 log.debug("Processed header template: {}", processedTemplate);
                 
-                // JSON'a çevir
-                Map<String, String> headerMap = objectMapper.readValue(
-                    processedTemplate,
-                    Map.class
-                );
-                
-                // Her bir header'ı ekle
-                headerMap.forEach((key, value) -> {
-                    log.debug("Adding header: {} = {}", key, value);
-                    headers.set(key, value);
-                });
-                
+                // Convert to JSON
+                headers = jsonUtils.jsonToStringMap(processedTemplate);
                 log.debug("Final headers: {}", headers);
             } catch (Exception e) {
                 log.error("Error processing headers: {}", e.getMessage(), e);
@@ -153,7 +148,7 @@ public class TaskExecutionService {
             String placeholder = "${" + entry.getKey() + "}";
             String value = entry.getValue() != null ? entry.getValue().toString() : "";
             
-            // Debug log - değişken değiştirme
+            // Debug log - variable replacement
             if (processed.contains(placeholder)) {
                 log.debug("Replacing placeholder '{}' with value '{}'", placeholder, value);
             }
@@ -167,12 +162,12 @@ public class TaskExecutionService {
         try {
             log.debug("Processing response mapping. Response body: {}, Mapping template: {}", responseBody, mappingTemplate);
             
-            // Response body'yi JSON'a çevir
-            Map<String, Object> responseMap = objectMapper.readValue(responseBody, Map.class);
+            // Convert response body to JSON
+            Map<String, Object> responseMap = jsonUtils.jsonToMap(responseBody);
             log.debug("Parsed response map: {}", responseMap);
             
-            // Mapping template'i JSON'a çevir
-            Map<String, String> mappings = objectMapper.readValue(mappingTemplate, Map.class);
+            // Convert mapping template to JSON
+            Map<String, String> mappings = jsonUtils.jsonToStringMap(mappingTemplate);
             log.debug("Parsed mappings: {}", mappings);
             
             Map<String, Object> result = new HashMap<>();
@@ -182,7 +177,7 @@ public class TaskExecutionService {
                 String sourcePath = mapping.getValue();
                 log.debug("Processing mapping: {} -> {}", sourcePath, targetKey);
                 
-                // "response." ile başlayan path'leri düzelt
+                // Fix paths starting with "response."
                 if (sourcePath.startsWith("response.")) {
                     sourcePath = sourcePath.substring("response.".length());
                 }
@@ -190,7 +185,7 @@ public class TaskExecutionService {
                 String[] path = sourcePath.split("\\.");
                 Object value = responseMap;
                 
-                // Path'i takip ederek değeri bul
+                // Follow path to find value
                 for (String key : path) {
                     if (value instanceof Map) {
                         value = ((Map) value).get(key);
@@ -220,7 +215,7 @@ public class TaskExecutionService {
 
     private Map<String, Object> processErrorMapping(Exception error, String errorMapping) {
         try {
-            Map<String, String> mappings = objectMapper.readValue(errorMapping, Map.class);
+            Map<String, String> mappings = jsonUtils.jsonToStringMap(errorMapping);
             Map<String, Object> result = new HashMap<>();
             
             // Create error context
@@ -249,21 +244,6 @@ public class TaskExecutionService {
         } catch (Exception e) {
             log.error("Error processing error mapping", e);
             return Map.of("error", error.getMessage());
-        }
-    }
-
-    private void validateJson(String json, String schema) {
-        try {
-            JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4);
-            JsonSchema jsonSchema = factory.getSchema(schema);
-            JsonNode jsonNode = objectMapper.readTree(json);
-            
-            Set<ValidationMessage> validationResult = jsonSchema.validate(jsonNode);
-            if (!validationResult.isEmpty()) {
-                throw new RuntimeException("JSON validation failed: " + validationResult);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error validating JSON", e);
         }
     }
 } 
