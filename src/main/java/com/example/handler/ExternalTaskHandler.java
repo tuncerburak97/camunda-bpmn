@@ -35,7 +35,7 @@ public class ExternalTaskHandler {
     @Value("${camunda.external-task.lock-duration:20000}")
     private long lockDuration;
     
-    // Aktif subscription'ları izlemek için map
+    // Watch active subscriptions
     private final Map<String, Boolean> activeSubscriptions = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -48,7 +48,7 @@ public class ExternalTaskHandler {
         log.info("Starting generic external task handler...");
         
         try {
-            // Veritabanından tüm task mapping'leri al
+            // Get all task mappings from database
             refreshSubscriptions();
             
             log.info("Successfully subscribed to all external tasks");
@@ -58,23 +58,23 @@ public class ExternalTaskHandler {
     }
     
     /**
-     * Aktif subscription'ları döndürür
-     * @return Aktif subscription'ların listesi
+     * Returns active subscriptions
+     * @return List of active subscriptions
      */
     public Set<String> getActiveSubscriptions() {
         return activeSubscriptions.keySet();
     }
     
     /**
-     * Tüm topic subscription'ları yeniler
-     * Bu metot periyodik olarak çağrılabilir veya yeni bir BPMN süreci deploy edildiğinde tetiklenebilir
+     * Refreshes all topic subscriptions
+     * This method can be called periodically or triggered when a new BPMN process is deployed
      */
     public void refreshSubscriptions() {
         try {
-            // Veritabanından tüm task mapping'leri al
+            // Get all task mappings from database
             List<TaskApiMapping> allMappings = taskApiMappingRepository.findAll();
             
-            // Tüm task ID'lerini topla (bunlar topic isimleri olarak kullanılacak)
+            // Collect all task IDs (these will be used as topic names)
             Set<String> allTaskIds = allMappings.stream()
                     .map(TaskApiMapping::getTaskId)
                     .filter(taskId -> taskId != null && !taskId.isEmpty())
@@ -82,7 +82,7 @@ public class ExternalTaskHandler {
             
             log.info("Found {} task mappings in database", allTaskIds.size());
             
-            // Her bir task ID için subscription oluştur (eğer zaten yoksa)
+            // Create subscription for each task ID (if it doesn't already exist)
             for (String taskId : allTaskIds) {
                 if (!activeSubscriptions.containsKey(taskId)) {
                     log.info("Creating new subscription for topic: {}", taskId);

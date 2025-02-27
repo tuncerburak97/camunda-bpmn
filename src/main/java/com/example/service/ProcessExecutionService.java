@@ -33,14 +33,14 @@ public class ProcessExecutionService {
 
 
         try {
-            // Küçük bir bekleme ekleyelim
+            // Add a small delay
             Thread.sleep(1000);
             
-            // Process variables'ı kontrol edelim
+            // Check process variables
             Map<String, Object> processVariables = camundaRestClient.getProcessVariables(processInstanceId);
             log.info("Process variables after start: {}", processVariables);
             
-            // External Task'ları kontrol edelim
+            // Check external tasks
             List<Map<String, Object>> externalTasks = camundaRestClient.getExternalTasksByProcessInstanceId(processInstanceId);
             log.info("Found {} external tasks for process instance: {}", externalTasks.size(), processInstanceId);
             

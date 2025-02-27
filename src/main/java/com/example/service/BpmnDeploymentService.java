@@ -58,7 +58,7 @@ public class BpmnDeploymentService {
             bpmnProcess.setLastDeployedAt(LocalDateTime.now());
             //bpmnProcess.setBpmnDeploymentId(deploy.getId());
 
-            // Yeni süreç deploy edildiğinde external task subscription'ları yenile
+            // When a new process is deployed, refresh external task subscriptions
             refreshExternalTaskSubscriptions();
 
             return bpmnProcessRepository.save(bpmnProcess);
@@ -110,20 +110,20 @@ public class BpmnDeploymentService {
     }
 
     /**
-     * External task subscription'larını yeniler
-     * Bu metot, ExternalTaskHandler'ı çağırarak tüm subscription'ları günceller
+     * Refresh external task subscriptions after BPMN deployment
+     * This method calls the ExternalTaskHandler to refresh all subscriptions
      */
     private void refreshExternalTaskSubscriptions() {
         try {
-            // ExternalTaskHandler bean'ini al
+            // Get ExternalTaskHandler bean
             ExternalTaskHandler externalTaskHandler = applicationContext.getBean(ExternalTaskHandler.class);
             
-            // Subscription'ları yenile
+            // Refresh subscriptions
             externalTaskHandler.refreshSubscriptions();
             
             log.info("External task subscriptions refreshed after BPMN deployment");
         } catch (Exception e) {
-            // ExternalTaskHandler bean'i bulunamadıysa veya devre dışı bırakıldıysa hata verme
+            // If ExternalTaskHandler bean is not found or disabled, log a warning
             log.warn("Could not refresh external task subscriptions: {}", e.getMessage());
         }
     }

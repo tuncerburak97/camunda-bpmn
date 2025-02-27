@@ -22,9 +22,9 @@ public class ExternalTaskController {
     private boolean externalTaskEnabled;
 
     /**
-     * External task subscription'larını yeniler
-     * Bu endpoint, yeni bir BPMN süreci deploy edildiğinde veya
-     * mevcut subscription'ları güncellemek istediğinizde kullanılabilir
+     * Refreshes external task subscriptions
+     * This endpoint can be used when a new BPMN process is deployed or
+     * when you want to update existing subscriptions
      */
     @PostMapping("/refresh-subscriptions")
     public ResponseEntity<Map<String, Object>> refreshSubscriptions() {
@@ -50,7 +50,7 @@ public class ExternalTaskController {
     }
     
     /**
-     * External task client'ın durumunu döndürür
+     * Returns the status of the external task client
      */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getStatus() {
