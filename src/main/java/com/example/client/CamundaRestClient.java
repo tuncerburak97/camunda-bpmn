@@ -445,4 +445,91 @@ public class CamundaRestClient {
                 ex
         );
     }
+
+    /**
+     * Get activity instances for a process instance
+     */
+    public Map<String, Object> getActivityInstances(String processInstanceId) {
+        String endpoint = "/process-instance/" + processInstanceId + "/activity-instances";
+        try {
+            // Create RestRequestModel
+            RestRequestModel<Map> requestModel = RestRequestModel.<Map>builder()
+                    .url(camundaRestUrl + endpoint)
+                    .method(HttpMethod.GET)
+                    .responseType(Map.class)
+                    .build();
+            
+            // Send request
+            RestResponseModel<Map> response = restClient.execute(requestModel);
+            
+            if (!response.isSuccess()) {
+                throw new RuntimeException("Activity instances not retrieved: " + processInstanceId);
+            }
+            
+            return response.getBody();
+        } catch (Exception ex) {
+            handleException(ex, endpoint);
+            return null; // This line will never be reached as handleException always throws an exception
+        }
+    }
+    
+    /**
+     * Modify process instance execution state
+     * This can be used to control gateways by starting execution at specific activities
+     */
+    public void modifyProcessInstance(String processInstanceId, List<Map<String, Object>> instructions) {
+        String endpoint = "/process-instance/" + processInstanceId + "/modification";
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("skipCustomListeners", true);
+            body.put("skipIoMappings", true);
+            body.put("instructions", instructions);
+            
+            // Create RestRequestModel
+            RestRequestModel<Void> requestModel = RestRequestModel.<Void>builder()
+                    .url(camundaRestUrl + endpoint)
+                    .method(HttpMethod.POST)
+                    .body(body)
+                    .responseType(Void.class)
+                    .build();
+            
+            // Send request
+            RestResponseModel<Void> response = restClient.execute(requestModel);
+            
+            if (!response.isSuccess()) {
+                throw new RuntimeException("Process instance not modified: " + processInstanceId);
+            }
+            
+            log.info("Successfully modified process instance: {}", processInstanceId);
+        } catch (Exception ex) {
+            handleException(ex, endpoint);
+        }
+    }
+    
+    /**
+     * Get BPMN model XML for a process definition
+     */
+    public String getProcessDefinitionXml(String processDefinitionId) {
+        String endpoint = "/process-definition/" + processDefinitionId + "/xml";
+        try {
+            // Create RestRequestModel
+            RestRequestModel<Map> requestModel = RestRequestModel.<Map>builder()
+                    .url(camundaRestUrl + endpoint)
+                    .method(HttpMethod.GET)
+                    .responseType(Map.class)
+                    .build();
+            
+            // Send request
+            RestResponseModel<Map> response = restClient.execute(requestModel);
+            
+            if (!response.isSuccess()) {
+                throw new RuntimeException("Process definition XML not retrieved: " + processDefinitionId);
+            }
+            
+            return (String) response.getBody().get("bpmn20Xml");
+        } catch (Exception ex) {
+            handleException(ex, endpoint);
+            return null; // This line will never be reached as handleException always throws an exception
+        }
+    }
 } 

@@ -246,6 +246,255 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "Gateway Management",
+			"item": [
+				{
+					"name": "Get Gateways",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/gateway/process-instance/{{processInstanceId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"gateway",
+								"process-instance",
+								"{{processInstanceId}}"
+							]
+						},
+						"description": "Get all gateways in a process instance"
+					},
+					"response": []
+				},
+				{
+					"name": "Execute Gateway",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"targetActivityIds\": [\"activity1\", \"activity2\"],\n    \"variables\": {\n        \"key1\": \"value1\",\n        \"key2\": \"value2\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/gateway/process-instance/{{processInstanceId}}/execute?gatewayId={{gatewayId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"gateway",
+								"process-instance",
+								"{{processInstanceId}}",
+								"execute"
+							],
+							"query": [
+								{
+									"key": "gatewayId",
+									"value": "{{gatewayId}}"
+								}
+							]
+						},
+						"description": "Execute a gateway with specified target activities"
+					},
+					"response": []
+				},
+				{
+					"name": "Execute Exclusive Gateway",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"targetActivityId\": \"activity1\",\n    \"variables\": {\n        \"key1\": \"value1\",\n        \"key2\": \"value2\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/gateway/process-instance/{{processInstanceId}}/exclusive?gatewayId={{gatewayId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"gateway",
+								"process-instance",
+								"{{processInstanceId}}",
+								"exclusive"
+							],
+							"query": [
+								{
+									"key": "gatewayId",
+									"value": "{{gatewayId}}"
+								}
+							]
+						},
+						"description": "Execute an exclusive gateway by selecting one outgoing path"
+					},
+					"response": []
+				},
+				{
+					"name": "Execute Parallel Gateway",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"targetActivityIds\": [\"activity1\", \"activity2\"],\n    \"variables\": {\n        \"key1\": \"value1\",\n        \"key2\": \"value2\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/gateway/process-instance/{{processInstanceId}}/parallel?gatewayId={{gatewayId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"gateway",
+								"process-instance",
+								"{{processInstanceId}}",
+								"parallel"
+							],
+							"query": [
+								{
+									"key": "gatewayId",
+									"value": "{{gatewayId}}"
+								}
+							]
+						},
+						"description": "Execute a parallel gateway by activating all outgoing paths"
+					},
+					"response": []
+				},
+				{
+					"name": "Execute Inclusive Gateway",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"targetActivityIds\": [\"activity1\", \"activity2\"],\n    \"variables\": {\n        \"key1\": \"value1\",\n        \"key2\": \"value2\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/gateway/process-instance/{{processInstanceId}}/inclusive?gatewayId={{gatewayId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"gateway",
+								"process-instance",
+								"{{processInstanceId}}",
+								"inclusive"
+							],
+							"query": [
+								{
+									"key": "gatewayId",
+									"value": "{{gatewayId}}"
+								}
+							]
+						},
+						"description": "Execute an inclusive gateway by selecting one or more outgoing paths"
+					},
+					"response": []
+				},
+				{
+					"name": "Execute Event-Based Gateway",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"targetActivityId\": \"activity1\",\n    \"variables\": {\n        \"key1\": \"value1\",\n        \"key2\": \"value2\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/gateway/process-instance/{{processInstanceId}}/event-based?gatewayId={{gatewayId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"gateway",
+								"process-instance",
+								"{{processInstanceId}}",
+								"event-based"
+							],
+							"query": [
+								{
+									"key": "gatewayId",
+									"value": "{{gatewayId}}"
+								}
+							]
+						},
+						"description": "Execute an event-based gateway by selecting one outgoing path"
+					},
+					"response": []
+				},
+				{
+					"name": "Execute Complex Gateway",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"targetActivityIds\": [\"activity1\", \"activity2\"],\n    \"variables\": {\n        \"key1\": \"value1\",\n        \"key2\": \"value2\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/gateway/process-instance/{{processInstanceId}}/complex?gatewayId={{gatewayId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"gateway",
+								"process-instance",
+								"{{processInstanceId}}",
+								"complex"
+							],
+							"query": [
+								{
+									"key": "gatewayId",
+									"value": "{{gatewayId}}"
+								}
+							]
+						},
+						"description": "Execute a complex gateway with custom logic"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing Camunda gateways"
 		}
 	]
 } 
