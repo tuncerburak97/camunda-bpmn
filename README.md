@@ -16,6 +16,23 @@ Bu proje, Camunda BPM platformu ile kurumsal servis entegrasyonlarını yönetme
 - H2 Database
 - Java 17
 
+## Postgres İle Db Kurulum
+
+docker run -d --name camunda -p 8080:8080 \
+-e SPRING_DATA_SOURCE_URL=jdbc:postgresql://{host}:{port}/postgres \
+-e SPRING_DATA_SOURCE_USERNAME={dbUser} \
+-e SPRING_DATA_SOURCE_PASSWORD={dbPass} \
+-e SPRING_DATA_SOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver \
+-e SPRING_JPA_HIBERNATE_DDL_AUTO=create \
+-e DB_DRIVER=org.postgresql.Driver \
+-e DB_URL=jdbc:postgresql://{host}/{dbName} \
+-e DB_USERNAME={dbUser} \
+-e DB_PASSWORD={dbPass} \
+-e WAIT_FOR={host}/{port} \
+-e WAIT_FOR_TIMEOUT=30 \
+camunda/camunda-bpm-platform:latest
+
+
 ## Kurulum
 
 1. Projeyi klonlayın:

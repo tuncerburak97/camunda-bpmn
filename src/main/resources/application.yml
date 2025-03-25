@@ -43,4 +43,4 @@ camunda:
     max-tasks: 1
     retry-count: 3
     retry-timeout: 60000
-    worker-id: dynamic-external-task-worker 
+    worker-id: dynamic-external-task-worker
