@@ -1,0 +1,180 @@
+{
+	"info": {
+		"_postman_id": "task-history-api",
+		"name": "Task History API",
+		"description": "Camunda BPM task geçmişi ve aktif taskları getiren API koleksiyonu",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Task History",
+			"item": [
+				{
+					"name": "Get Active Tasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-history/active",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-history", "active"]
+						},
+						"description": "Aktif olarak çalışan tüm taskları getirir"
+					}
+				},
+				{
+					"name": "Get Active Tasks By Process",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-history/active?processInstanceId={{processInstanceId}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-history", "active"],
+							"query": [
+								{
+									"key": "processInstanceId",
+									"value": "{{processInstanceId}}"
+								}
+							]
+						},
+						"description": "Belirli bir süreç için aktif olarak çalışan taskları getirir"
+					}
+				},
+				{
+					"name": "Get Completed Tasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-history/completed",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-history", "completed"]
+						},
+						"description": "Tamamlanmış tüm taskları getirir"
+					}
+				},
+				{
+					"name": "Get Completed Tasks By Process",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-history/completed?processInstanceId={{processInstanceId}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-history", "completed"],
+							"query": [
+								{
+									"key": "processInstanceId",
+									"value": "{{processInstanceId}}"
+								}
+							]
+						},
+						"description": "Belirli bir süreç için tamamlanmış taskları getirir"
+					}
+				},
+				{
+					"name": "Get Task History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-history/{{taskId}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-history", "{{taskId}}"]
+						},
+						"description": "Belirli bir task'ın geçmiş bilgilerini getirir"
+					}
+				},
+				{
+					"name": "Get All Tasks For Process",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-history/process/{{processInstanceId}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-history", "process", "{{processInstanceId}}"]
+						},
+						"description": "Bir süreç için hem aktif hem de tamamlanmış tüm taskları getirir"
+					}
+				},
+				{
+					"name": "Get External Tasks History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-history/external-tasks",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-history", "external-tasks"]
+						},
+						"description": "Tamamlanmış tüm external taskları getirir"
+					}
+				},
+				{
+					"name": "Get External Tasks History By Process",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-history/external-tasks?processInstanceId={{processInstanceId}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-history", "external-tasks"],
+							"query": [
+								{
+									"key": "processInstanceId",
+									"value": "{{processInstanceId}}"
+								}
+							]
+						},
+						"description": "Belirli bir süreç için tamamlanmış external taskları getirir"
+					}
+				},
+				{
+					"name": "Get All Task Types For Process",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/api/task-history/process/{{processInstanceId}}/all",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8081",
+							"path": ["api", "task-history", "process", "{{processInstanceId}}", "all"]
+						},
+						"description": "Bir süreç için hem user task hem de external task tipindeki tüm görevleri getirir"
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "processInstanceId",
+			"value": "your-process-instance-id",
+			"type": "string"
+		},
+		{
+			"key": "taskId",
+			"value": "your-task-id",
+			"type": "string"
+		}
+	]
+} 

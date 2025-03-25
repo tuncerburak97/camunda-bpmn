@@ -532,4 +532,119 @@ public class CamundaRestClient {
             return null; // This line will never be reached as handleException always throws an exception
         }
     }
+
+    /**
+     * Get active tasks (running tasks) from Camunda
+     * @param processInstanceId Optional process instance ID to filter by
+     * @return List of active tasks
+     */
+    public List<Map<String, Object>> getActiveTasksHistory(String processInstanceId) {
+        String endpoint = "/history/task";
+        try {
+            // Query parameters
+            MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
+            queryParams.add("active", "true");
+            if (processInstanceId != null) {
+                queryParams.add("processInstanceId", processInstanceId);
+            }
+            
+            // Create RestRequestModel
+            RestRequestModel<List> requestModel = RestRequestModel.<List>builder()
+                    .url(camundaRestUrl + endpoint)
+                    .method(HttpMethod.GET)
+                    .queryParams(queryParams)
+                    .responseType(List.class)
+                    .build();
+            
+            // Send request
+            RestResponseModel<List> response = restClient.execute(requestModel);
+            
+            if (!response.isSuccess()) {
+                throw new RuntimeException("Active tasks not retrieved.");
+            }
+            
+            return response.getBody();
+        } catch (Exception ex) {
+            handleException(ex, endpoint);
+            return null; // This line will never be reached as handleException always throws an exception
+        }
+    }
+
+    /**
+     * Get completed tasks history from Camunda
+     * @param processInstanceId Optional process instance ID to filter by
+     * @return List of completed tasks
+     */
+    public List<Map<String, Object>> getCompletedTasksHistory(String processInstanceId) {
+        String endpoint = "/history/task";
+        try {
+            // Query parameters
+            MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
+            queryParams.add("finished", "true");
+            if (processInstanceId != null) {
+                queryParams.add("processInstanceId", processInstanceId);
+            }
+            queryParams.add("sortBy", "endTime");
+            queryParams.add("sortOrder", "desc");
+            
+            // Create RestRequestModel
+            RestRequestModel<List> requestModel = RestRequestModel.<List>builder()
+                    .url(camundaRestUrl + endpoint)
+                    .method(HttpMethod.GET)
+                    .queryParams(queryParams)
+                    .responseType(List.class)
+                    .build();
+            
+            // Send request
+            RestResponseModel<List> response = restClient.execute(requestModel);
+            
+            if (!response.isSuccess()) {
+                throw new RuntimeException("Completed tasks not retrieved.");
+            }
+            
+            return response.getBody();
+        } catch (Exception ex) {
+            handleException(ex, endpoint);
+            return null; // This line will never be reached as handleException always throws an exception
+        }
+    }
+
+    /**
+     * Get completed external tasks history from Camunda
+     * @param processInstanceId Optional process instance ID to filter by
+     * @return List of completed external tasks
+     */
+    public List<Map<String, Object>> getExternalTaskHistory(String processInstanceId) {
+        String endpoint = "/history/external-task-log";
+        try {
+            // Query parameters
+            MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
+            if (processInstanceId != null) {
+                queryParams.add("processInstanceId", processInstanceId);
+            }
+            queryParams.add("completed", "true");
+            queryParams.add("sortBy", "timestamp");
+            queryParams.add("sortOrder", "desc");
+            
+            // Create RestRequestModel
+            RestRequestModel<List> requestModel = RestRequestModel.<List>builder()
+                    .url(camundaRestUrl + endpoint)
+                    .method(HttpMethod.GET)
+                    .queryParams(queryParams)
+                    .responseType(List.class)
+                    .build();
+            
+            // Send request
+            RestResponseModel<List> response = restClient.execute(requestModel);
+            
+            if (!response.isSuccess()) {
+                throw new RuntimeException("External task history not retrieved.");
+            }
+            
+            return response.getBody();
+        } catch (Exception ex) {
+            handleException(ex, endpoint);
+            return null; // This line will never be reached as handleException always throws an exception
+        }
+    }
 } 
