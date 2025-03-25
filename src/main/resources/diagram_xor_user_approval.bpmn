@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1"
+  targetNamespace="http://bpmn.io/schema/bpmn"
+  xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd
+                      http://camunda.org/schema/1.0/bpmn camunda.xsd">
+
+  <bpmn:process id="UserAuthXorUserApprovalProcess" name="Kullanıcı Doğrulama ve Onay Süreci" isExecutable="true" camunda:historyTimeToLive="30">
+    <bpmn:startEvent id="StartEvent_XOR" name="Başlangıç">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_XOR" targetRef="Task_LoginXOR" />
+    <bpmn:serviceTask id="Task_LoginXOR" name="Login İşlemi"
+                      camunda:type="external"
+                      camunda:topic="Task_LoginXOR">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_LoginXOR" targetRef="Task_GetProfileXOR" />
+    <bpmn:serviceTask id="Task_GetProfileXOR" name="Profil Bilgisi Alma"
+                      camunda:type="external"
+                      camunda:topic="Task_GetProfileXOR">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- XOR Gateway ve ilgili akışlar -->
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_GetProfileXOR" targetRef="Gateway_RoleCheck" />
+    
+    <bpmn:exclusiveGateway id="Gateway_RoleCheck" name="Rol Kontrolü">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_IsAdmin</bpmn:outgoing>
+      <bpmn:outgoing>Flow_IsNotAdmin</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:sequenceFlow id="Flow_IsAdmin" name="role == 'ADMIN'" sourceRef="Gateway_RoleCheck" targetRef="Task_AdminAPIXOR">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${role == 'ADMIN'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_IsNotAdmin" name="role != 'ADMIN'" sourceRef="Gateway_RoleCheck" targetRef="Task_UserApproval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${role != 'ADMIN'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <!-- Yeni User Task: Onay için -->
+    <bpmn:userTask id="Task_UserApproval" name="Yönetici Onayı">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="approved" label="Onay" type="boolean" />
+          <camunda:formField id="approvalComment" label="Onay Yorumu" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_IsNotAdmin</bpmn:incoming>
+      <bpmn:outgoing>Flow_AfterApproval</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="Flow_AfterApproval" sourceRef="Task_UserApproval" targetRef="Gateway_ApprovalCheck" />
+    
+    <!-- Onay Durumu Kontrolü Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_ApprovalCheck" name="Onay Kontrolü">
+      <bpmn:incoming>Flow_AfterApproval</bpmn:incoming>
+      <bpmn:outgoing>Flow_IsApproved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NotApproved</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:sequenceFlow id="Flow_IsApproved" name="approved == true" sourceRef="Gateway_ApprovalCheck" targetRef="Task_UserAPIXOR">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_NotApproved" name="approved != true" sourceRef="Gateway_ApprovalCheck" targetRef="EndEvent_Rejected">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved != true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <!-- Red Edildi Bitiş Olayı -->
+    <bpmn:endEvent id="EndEvent_Rejected" name="İşlem Reddedildi">
+      <bpmn:incoming>Flow_NotApproved</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:serviceTask id="Task_AdminAPIXOR" name="Admin API İşlemi"
+                      camunda:type="external"
+                      camunda:topic="Task_AdminAPIXOR">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="apiUrl">https://dummyjson.com/test</camunda:inputParameter>
+          <camunda:inputParameter name="method">GET</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_IsAdmin</bpmn:incoming>
+      <bpmn:outgoing>Flow_AdminToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="Task_UserAPIXOR" name="User API İşlemi"
+                      camunda:type="external"
+                      camunda:topic="Task_UserAPIXOR">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="apiUrl">https://dummyjson.com/products/1</camunda:inputParameter>
+          <camunda:inputParameter name="method">GET</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_IsApproved</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="Flow_AdminToEnd" sourceRef="Task_AdminAPIXOR" targetRef="EndEvent_XOR" />
+    <bpmn:sequenceFlow id="Flow_UserToEnd" sourceRef="Task_UserAPIXOR" targetRef="EndEvent_XOR" />
+    
+    <bpmn:endEvent id="EndEvent_XOR" name="İşlem Tamamlandı">
+      <bpmn:incoming>Flow_AdminToEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_UserToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="UserAuthXorUserApprovalProcess">
+      <bpmndi:BPMNShape id="StartEvent_XOR_di" bpmnElement="StartEvent_XOR">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="146" y="145" width="48" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_LoginXOR_di" bpmnElement="Task_LoginXOR">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GetProfileXOR_di" bpmnElement="Task_GetProfileXOR">
+        <dc:Bounds x="400" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      
+      <!-- XOR Gateway ve ilgili görevlerin görsel tanımları -->
+      <bpmndi:BPMNShape id="Gateway_RoleCheck_di" bpmnElement="Gateway_RoleCheck" isMarkerVisible="true">
+        <dc:Bounds x="555" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="547" y="65" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_AdminAPIXOR_di" bpmnElement="Task_AdminAPIXOR">
+        <dc:Bounds x="660" y="10" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      
+      <!-- User Task ve ilgili gateway'ler -->
+      <bpmndi:BPMNShape id="Task_UserApproval_di" bpmnElement="Task_UserApproval">
+        <dc:Bounds x="660" y="150" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Gateway_ApprovalCheck_di" bpmnElement="Gateway_ApprovalCheck" isMarkerVisible="true">
+        <dc:Bounds x="815" y="165" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="807" y="135" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_UserAPIXOR_di" bpmnElement="Task_UserAPIXOR">
+        <dc:Bounds x="920" y="150" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="822" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="802" y="335" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_XOR_di" bpmnElement="EndEvent_XOR">
+        <dc:Bounds x="1072" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1051" y="145" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="400" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="500" y="120" />
+        <di:waypoint x="555" y="120" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_IsAdmin_di" bpmnElement="Flow_IsAdmin">
+        <di:waypoint x="580" y="95" />
+        <di:waypoint x="580" y="50" />
+        <di:waypoint x="660" y="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="585" y="33" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_IsNotAdmin_di" bpmnElement="Flow_IsNotAdmin">
+        <di:waypoint x="580" y="145" />
+        <di:waypoint x="580" y="190" />
+        <di:waypoint x="660" y="190" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="585" y="173" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_AfterApproval_di" bpmnElement="Flow_AfterApproval">
+        <di:waypoint x="760" y="190" />
+        <di:waypoint x="815" y="190" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_IsApproved_di" bpmnElement="Flow_IsApproved">
+        <di:waypoint x="865" y="190" />
+        <di:waypoint x="920" y="190" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="858" y="172" width="69" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_NotApproved_di" bpmnElement="Flow_NotApproved">
+        <di:waypoint x="840" y="215" />
+        <di:waypoint x="840" y="292" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="848" y="243" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_AdminToEnd_di" bpmnElement="Flow_AdminToEnd">
+        <di:waypoint x="760" y="50" />
+        <di:waypoint x="1090" y="50" />
+        <di:waypoint x="1090" y="102" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_UserToEnd_di" bpmnElement="Flow_UserToEnd">
+        <di:waypoint x="1020" y="190" />
+        <di:waypoint x="1090" y="190" />
+        <di:waypoint x="1090" y="138" />
+      </bpmndi:BPMNEdge>
+      
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions> 
