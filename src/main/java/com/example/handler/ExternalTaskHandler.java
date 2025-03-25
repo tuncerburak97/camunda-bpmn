@@ -132,6 +132,7 @@ public class ExternalTaskHandler {
                     mapping -> {
                         try {
                             // Execute the task using mapping
+
                             Map<String, Object> result = taskExecutionService.executeTask(
                                 mapping.getBpmnProcess() != null ? mapping.getBpmnProcess().getId() : null, 
                                 taskId, 
